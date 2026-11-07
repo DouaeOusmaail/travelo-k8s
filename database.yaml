@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: travelo-config
+data:
+  dbname: travelo_db
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: travelo-database
+spec:
+  selector:
+    app: travelo-database
+  ports:
+    - port: 3306
+      protocol: TCP
+      targetPort: 3306
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: travelo-database
+spec:
+  replicas: 1
+  serviceName: travelo-database
+  selector:
+    matchLabels:
+      app: travelo-database
+  template:
+    metadata:
+      labels:
+        app: travelo-database
+    spec:
+      containers:
+        - name: travelo-database
+          image: mysql:8.0
+          ports:
+            - containerPort: 3306
+              name: db-port
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: travelo-secret
+                  key: password
+            - name: MYSQL_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: travelo-config
+                  key: dbname
+          volumeMounts:
+            - name: mysql-storage
+              mountPath: /var/lib/mysql
+  volumeClaimTemplates:
+    - metadata:
+        name: mysql-storage
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi

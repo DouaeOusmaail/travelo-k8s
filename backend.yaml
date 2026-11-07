@@ -1,0 +1,57 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: travelo-backend
+spec:
+  selector:
+    app: travelo-backend
+  ports:
+    - port: 8080
+      protocol: TCP
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: travelo-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: travelo-backend
+  template:
+    metadata:
+      labels:
+        app: travelo-backend
+    spec:
+      containers:
+        - name: travelo-backend
+          image: douaeousmaail/travelo-backend:1.0.0
+          ports:
+            - containerPort: 8080
+              name: backend-port
+          startupProbe:
+            tcpSocket:
+              port: 8080
+            periodSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            periodSeconds: 20
+            failureThreshold: 3
+          env:
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: travelo-secret
+                  key: username
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: travelo-secret
+                  key: password
